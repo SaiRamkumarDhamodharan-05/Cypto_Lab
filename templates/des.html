@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Playfair Cipher - Cryptography Lab</title>
+    <title>DES Cipher - Cryptography Lab</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -117,6 +117,8 @@
             background: #fff;
             padding: 10px;
             border: 1px solid #eee;
+            max-height: 500px;
+            overflow-y: auto;
         }
         .error {
             border-left-color: #c0392b;
@@ -144,23 +146,23 @@
             <h3>Exercises</h3>
             <a href="/">Shift Cipher</a>
             <a href="/hill">Hill Cipher</a>
-            <a href="/playfair" class="active">Playfair Cipher</a>
+            <a href="/playfair">Playfair Cipher</a>
             <a href="/primality">Primality Testing</a>
-            <a href="/des">DES Cipher</a>
+            <a href="/des" class="active">DES Cipher</a>
         </div>
         
         <div class="content">
-            <h1>Playfair Cipher</h1>
-            <p class="subtitle">Digraph Substitution Encryption and Decryption</p>
+            <h1>DES Cipher</h1>
+            <p class="subtitle">Data Encryption Standard - 64-bit Block Cipher</p>
             
             <form method="post">
-                <label>Key:</label>
-                <input type="text" name="key" placeholder="Enter key (e.g. MONARCHY)" value="{{ key or '' }}" required>
-                <p class="hint">Letters only, 'J' will be treated as 'I'</p>
+                <label>Plaintext (64-bit Hex):</label>
+                <input type="text" name="plaintext" placeholder="e.g. 0123456789ABCDEF" value="{{ plaintext or '' }}" required>
+                <p class="hint">Enter 16 hexadecimal characters (64 bits)</p>
                 
-                <label>Plain Text:</label>
-                <input type="text" name="text" placeholder="Enter text to encrypt" value="{{ text or '' }}" required>
-                <p class="hint">Spaces will be preserved in output</p>
+                <label>Key (64-bit Hex):</label>
+                <input type="text" name="key" placeholder="e.g. 133457799BBCDFF1" value="{{ key or '' }}" required>
+                <p class="hint">Enter 16 hexadecimal characters (64 bits)</p>
                 
                 <button type="submit" class="btn">Encrypt & Decrypt</button>
             </form>
