@@ -211,6 +211,66 @@ def des_cipher():
 
     return render_template("des.html", output=output, error=error, code=code, plaintext=plaintext, key=key)
 
+@app.route("/aes", methods=["GET", "POST"])
+def aes_cipher():
+    output = ""
+    error = ""
+    
+    # Read the code file
+    with open("aes.py", "r") as f:
+        code = f.read()
+
+    if request.method == "POST":
+        try:
+            plaintext = request.form["plaintext"]
+            key = request.form["key"]
+            
+            # Store form values in session to preserve them after redirect
+            session["aes_plaintext"] = plaintext
+            session["aes_key"] = key
+            
+            # Validate hex input
+            if len(plaintext) != 32 or not all(c in '0123456789ABCDEFabcdef' for c in plaintext):
+                raise ValueError("Plaintext must be exactly 32 hex characters (128 bits)")
+            if len(key) != 32 or not all(c in '0123456789ABCDEFabcdef' for c in key):
+                raise ValueError("Key must be exactly 32 hex characters (128 bits)")
+
+            process = subprocess.run(
+                ["python", "aes.py"],
+                input=f"{plaintext}\n{key}\n",
+                text=True,
+                capture_output=True
+            )
+
+            # Filter output to remove input prompts
+            full_output = process.stdout + process.stderr
+            lines_to_remove = [
+                "Enter 128-bit Plaintext (HEX):",
+                "Enter 128-bit Key (HEX):",
+            ]
+            filtered_lines = []
+            for line in full_output.split('\n'):
+                if any(prompt in line for prompt in lines_to_remove):
+                    continue
+                filtered_lines.append(line)
+            
+            filtered_output = '\n'.join(filtered_lines).strip()
+            session["aes_output"] = filtered_output
+        except ValueError as e:
+            session["aes_error"] = f"Error: {str(e)}"
+        except Exception as e:
+            session["aes_error"] = f"Error: {str(e)}"
+        
+        return redirect(url_for("aes_cipher"))
+    
+    # Get from session and clear
+    output = session.pop("aes_output", "")
+    error = session.pop("aes_error", "")
+    plaintext = session.pop("aes_plaintext", "")
+    key = session.pop("aes_key", "")
+
+    return render_template("aes.html", output=output, error=error, code=code, plaintext=plaintext, key=key)
+
 @app.route("/primality", methods=["GET", "POST"])
 def primality_test():
     output = ""
