@@ -407,6 +407,84 @@ def rsa_cipher():
     return render_template("rsa.html", output=output, error=error, code=code, p=p, q=q, e=e, message=message)
 
 
+@app.route("/diffie", methods=["GET", "POST"])
+def diffie_hellman():
+    output = ""
+    error = ""
+
+    # Read the code file
+    with open("diffie.py", "r", encoding="utf-8", errors="replace") as f:
+        code = f.read()
+
+    if request.method == "POST":
+        try:
+            p = request.form["p"].strip()
+            g = request.form["g"].strip()
+            a = request.form["a"].strip()
+            b = request.form["b"].strip()
+
+            # Preserve form values after redirect
+            session["diffie_p"] = p
+            session["diffie_g"] = g
+            session["diffie_a"] = a
+            session["diffie_b"] = b
+
+            # Basic validation before running the script
+            p_int = int(p)
+            g_int = int(g)
+            a_int = int(a)
+            b_int = int(b)
+
+            if p_int <= 2:
+                raise ValueError("p must be greater than 2.")
+            if not is_prime(p_int):
+                raise ValueError(f"p = {p_int} must be prime.")
+            if g_int <= 1 or g_int >= p_int:
+                raise ValueError("g must satisfy 1 < g < p.")
+            if a_int <= 0 or b_int <= 0:
+                raise ValueError("Private keys a and b must be positive integers.")
+
+            process = subprocess.run(
+                ["python", "diffie.py"],
+                input=f"{p}\n{g}\n{a}\n{b}\n",
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                capture_output=True
+            )
+
+            full_output = process.stdout + process.stderr
+            # Remove interactive prompts for cleaner UI output.
+            prompt_tokens = [
+                "Enter prime number p:",
+                "Enter base g:",
+                "Enter Alice private key a:",
+                "Enter Bob private key b:",
+                "=== Diffie-Hellman Key Exchange (With Steps) ===",
+            ]
+            filtered_output = full_output
+            for token in prompt_tokens:
+                filtered_output = filtered_output.replace(token, "")
+
+            session["diffie_output"] = filtered_output.strip()
+        except ValueError as e:
+            session["diffie_error"] = f"Error: {str(e)}"
+        except Exception as e:
+            session["diffie_error"] = f"Error: {str(e)}"
+
+        return redirect(url_for("diffie_hellman"))
+
+    # Get from session and clear
+    output = session.pop("diffie_output", "")
+    error = session.pop("diffie_error", "")
+    p = session.pop("diffie_p", "")
+    g = session.pop("diffie_g", "")
+    a = session.pop("diffie_a", "")
+    b = session.pop("diffie_b", "")
+
+    return render_template("diffie.html", output=output, error=error, code=code, p=p, g=g, a=a, b=b)
+
+
 @app.route("/primality", methods=["GET", "POST"])
 def primality_test():
     output = ""

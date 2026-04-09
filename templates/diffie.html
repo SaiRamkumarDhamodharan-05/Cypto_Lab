@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Primality Testing - Cryptography Lab</title>
+    <title>Diffie-Hellman - Cryptography Lab</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,16 +68,8 @@
             padding: 10px;
             border: 1px solid #bbb;
             box-sizing: border-box;
-            font-family: Consolas, monospace;
         }
-        select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #bbb;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        input:focus, select:focus {
+        input:focus {
             outline: none;
             border-color: #4a7c59;
         }
@@ -152,37 +144,38 @@
             <a href="/">Shift Cipher</a>
             <a href="/hill">Hill Cipher</a>
             <a href="/playfair">Playfair Cipher</a>
-            <a href="/primality" class="active">Primality Testing</a>
+            <a href="/primality">Primality Testing</a>
             <a href="/des">DES Cipher</a>
             <a href="/aes">AES Cipher</a>
             <a href="/rsa">RSA</a>
-            <a href="/diffie">Diffie-Hellman</a>
+            <a href="/diffie" class="active">Diffie-Hellman</a>
         </div>
-        
+
         <div class="content">
-            <h1>Primality Testing</h1>
-            <p class="subtitle">Test if a number is prime using different algorithms</p>
-            
+            <h1>Diffie-Hellman Key Exchange</h1>
+            <p class="subtitle">Step-by-step key exchange output with public keys and shared secret verification.</p>
+
             <form method="post">
-                <label>Number to Test:</label>
-                <input type="number" name="number" placeholder="Enter a positive integer (e.g. 17)" value="{{ number or '' }}" min="1" required>
-                <p class="hint">Enter a positive integer to test for primality</p>
-                
-                <label>Testing Method:</label>
-                <select name="method" required>
-                    <option value="1" {% if method == '1' %}selected{% endif %}>Euclidean Method (GCD-based)</option>
-                    <option value="2" {% if method == '2' %}selected{% endif %}>Fermat Primality Test</option>
-                    <option value="3" {% if method == '3' %}selected{% endif %}>Miller-Rabin Primality Test</option>
-                </select>
-                <p class="hint">Euclidean: deterministic but slow | Fermat & Miller-Rabin: probabilistic but faster</p>
-                
-                <button type="submit" class="btn">Test Primality</button>
+                <label>Prime Number p:</label>
+                <input type="number" name="p" placeholder="e.g. 23" value="{{ p or '' }}" required>
+
+                <label>Base g:</label>
+                <input type="number" name="g" placeholder="e.g. 5" value="{{ g or '' }}" required>
+
+                <label>Alice Private Key a:</label>
+                <input type="number" name="a" placeholder="e.g. 6" value="{{ a or '' }}" required>
+
+                <label>Bob Private Key b:</label>
+                <input type="number" name="b" placeholder="e.g. 15" value="{{ b or '' }}" required>
+
+                <p class="hint">Use positive integers. The app validates that p is prime and 1 &lt; g &lt; p.</p>
+                <button type="submit" class="btn">Run Diffie-Hellman (With Steps)</button>
             </form>
-            
+
             <button type="button" class="btn btn-secondary" onclick="toggleCode()" style="margin-top:15px;">See Code</button>
-            
+
             <div id="codeBox" class="code-section">{{ code }}</div>
-            
+
             <script>
                 function toggleCode() {
                     var box = document.getElementById('codeBox');
@@ -193,14 +186,14 @@
                     }
                 }
             </script>
-            
+
             {% if error %}
             <div class="output error">
                 <h3>Error</h3>
                 <p>{{ error }}</p>
             </div>
             {% endif %}
-            
+
             {% if output %}
             <div class="output">
                 <h3>Results</h3>
