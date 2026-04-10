@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hill Cipher - Cryptography Lab</title>
+    <title>CMAC - Cryptography Lab</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,7 +11,7 @@
         }
         .wrapper {
             display: flex;
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
             gap: 15px;
         }
@@ -63,18 +63,14 @@
             font-weight: bold;
             color: #333;
         }
-        input[type="text"], input[type="number"], textarea {
+        input[type="text"], input[type="number"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #bbb;
             box-sizing: border-box;
             font-family: Consolas, monospace;
         }
-        textarea {
-            height: 120px;
-            resize: vertical;
-        }
-        input:focus, textarea:focus {
+        input:focus {
             outline: none;
             border-color: #4a7c59;
         }
@@ -113,14 +109,32 @@
             margin-top: 0;
             color: #2c3e50;
         }
-        .output pre {
-            white-space: pre-wrap;
-            font-family: Consolas, monospace;
-            font-size: 13px;
-            margin: 0;
+        .step {
+            margin: 15px 0;
+            padding: 12px;
             background: #fff;
-            padding: 10px;
             border: 1px solid #eee;
+            border-left: 3px solid #4a7c59;
+        }
+        .step h4 {
+            margin: 0 0 8px 0;
+            color: #4a7c59;
+            font-size: 14px;
+        }
+        .step p {
+            margin: 0;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        .result-row {
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #eee;
+        }
+        .result-row strong {
+            color: #4a7c59;
         }
         .error {
             border-left-color: #c0392b;
@@ -141,6 +155,21 @@
             display: none;
             border: 1px solid #ddd;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 4px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        th {
+            background: #d0d0d0;
+        }
     </style>
 </head>
 <body>
@@ -148,38 +177,35 @@
         <div class="sidebar">
             <h3>Exercises</h3>
             <a href="/">Shift Cipher</a>
-            <a href="/hill" class="active">Hill Cipher</a>
+            <a href="/hill">Hill Cipher</a>
             <a href="/playfair">Playfair Cipher</a>
             <a href="/primality">Primality Testing</a>
             <a href="/des">DES Cipher</a>
             <a href="/aes">AES Cipher</a>
             <a href="/rsa">RSA</a>
-            <a href="/diffie">Diffie-Hellman</a>            <a href="/sha256">SHA-256</a>            <a href="/cmac">CMAC</a>            <a href="/md5">MD5</a>        </div>
+            <a href="/diffie">Diffie-Hellman</a>
+            <a href="/sha256">SHA-256</a>
+            <a href="/cmac" class="active">CMAC</a>
+            <a href="/md5">MD5</a>
+        </div>
         
         <div class="content">
-            <h1>Hill Cipher</h1>
-            <p class="subtitle">Matrix-based Encryption and Decryption</p>
+            <h1>CMAC (Cipher-based MAC)</h1>
+            <p class="subtitle">Message Authentication Code using AES-128 encryption</p>
             
             <form method="post">
-                <label>Plain Text:</label>
-                <input type="text" name="text" placeholder="Enter text (e.g. HELP)" value="{{ text or '' }}" required>
+                <label>Message:</label>
+                <input type="text" name="message" placeholder="Enter message" value="{{ message or '' }}" required>
+                <p class="hint">Message will be padded as needed</p>
                 
-                <label>Key Size (n):</label>
-                <input type="number" name="keysize" placeholder="2 or 3" min="2" max="3" value="{{ keysize or '' }}" required>
-                <p class="hint">For 2x2 matrix enter 2, for 3x3 enter 3</p>
+                <label>Key (Optional):</label>
+                <input type="text" name="key" placeholder="Enter key (default: 0-padded)" value="{{ key or '' }}">
+                <p class="hint">Max 16 characters. If empty, all zeros will be used</p>
                 
-                <label>Key Matrix:</label>
-                <textarea name="matrix" placeholder="Example for 2x2:
-3 3
-2 5
-
-Example for 3x3:
-6 24 1
-13 16 10
-20 17 15" required>{{ matrix or '' }}</textarea>
-                <p class="hint">Enter each row on a new line, values separated by spaces</p>
+                <label>Tag Length:</label>
+                <input type="number" name="tlen" min="1" max="16" placeholder="Tag length (1-16 bytes)" value="{{ tlen or '16' }}" required>
                 
-                <button type="submit" class="btn">Encrypt & Decrypt</button>
+                <button type="submit" class="btn">Generate CMAC Tag</button>
             </form>
             
             <button type="button" class="btn btn-secondary" onclick="toggleCode()" style="margin-top:15px;">See Code</button>
@@ -207,7 +233,61 @@ Example for 3x3:
             {% if output %}
             <div class="output">
                 <h3>Results</h3>
-                <pre>{{ output }}</pre>
+                <div class="result-row">
+                    <strong>Message:</strong> {{ message }}
+                </div>
+                <div class="result-row">
+                    <strong>Key (Padded to 16 bytes):</strong> {{ steps.key_hex }}
+                </div>
+                
+                <div class="step">
+                    <h4>Step 1: Subkey Generation</h4>
+                    <p><strong>L (AES(0)):</strong> {{ steps.L }}</p>
+                    <p><strong>K1 (from L):</strong> {{ steps.K1 }}</p>
+                    <p><strong>K2 (from K1):</strong> {{ steps.K2 }}</p>
+                </div>
+                
+                <div class="step">
+                    <h4>Step 2: Message Blocks</h4>
+                    <p><strong>Total blocks:</strong> {{ steps.blocks|length }}</p>
+                    {% for block in steps.blocks %}
+                    <p>M{{ loop.index }}: {{ block }}</p>
+                    {% endfor %}
+                </div>
+                
+                <div class="step">
+                    <h4>Step 3: Last Block Processing</h4>
+                    {% if steps.is_complete_block %}
+                    <p>Last block is complete - XORing with K1</p>
+                    {% else %}
+                    <p>Last block incomplete - Padding with 0x80 and XORing with K2</p>
+                    {% endif %}
+                    <p><strong>Final block (before CBC):</strong> {{ steps.last_block }}</p>
+                </div>
+                
+                <div class="step">
+                    <h4>Step 4: CBC-MAC Processing</h4>
+                    <table>
+                        <tr>
+                            <th>Block</th>
+                            <th>XOR Result</th>
+                            <th>CBC Output (E)</th>
+                        </tr>
+                        {% for step in steps.cbc_steps %}
+                        <tr>
+                            <td>{{ step.block }}</td>
+                            <td>{{ step.xor_result }}</td>
+                            <td>{{ step.output }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                
+                <div class="step">
+                    <h4>Step 5: Final Tag</h4>
+                    <p><strong>Full Tag (16 bytes):</strong> {{ steps.tag_full }}</p>
+                    <p style="font-weight: bold; font-size: 14px; color: #2c3e50;"><strong>Final CMAC Tag ({{ tlen }} bytes):</strong> {{ steps.tag }}</p>
+                </div>
             </div>
             {% endif %}
         </div>

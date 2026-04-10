@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SHA-256 Hashing - Cryptography Lab</title>
+    <title>MD5 - Cryptography Lab</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,7 +11,7 @@
         }
         .wrapper {
             display: flex;
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
             gap: 15px;
         }
@@ -155,6 +155,31 @@
             display: none;
             border: 1px solid #ddd;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 4px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        th {
+            background: #d0d0d0;
+        }
+        .hash-output {
+            background: #fff;
+            color: #000;
+            padding: 15px;
+            font-family: Consolas, monospace;
+            font-size: 16px;
+            word-break: break-all;
+            border: 2px solid #4a7c59;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -169,20 +194,21 @@
             <a href="/aes">AES Cipher</a>
             <a href="/rsa">RSA</a>
             <a href="/diffie">Diffie-Hellman</a>
-            <a href="/sha256" class="active">SHA-256</a>
+            <a href="/sha256">SHA-256</a>
             <a href="/cmac">CMAC</a>
-            <a href="/md5">MD5</a>
+            <a href="/md5" class="active">MD5</a>
         </div>
         
         <div class="content">
-            <h1>SHA-256 Hashing</h1>
-            <p class="subtitle">Secure Hash Algorithm 256-bit - Generate cryptographic hashes</p>
+            <h1>MD5 Hash Function</h1>
+            <p class="subtitle">Message Digest Algorithm 5 - 128-bit cryptographic hash</p>
             
             <form method="post">
                 <label>Message:</label>
-                <input type="text" name="message" placeholder="Enter text to hash" value="{{ message or '' }}" required>
+                <input type="text" name="message" placeholder="Enter message" value="{{ message or '' }}" required>
+                <p class="hint">MD5 will be computed for this message</p>
                 
-                <button type="submit" class="btn">Generate Hash</button>
+                <button type="submit" class="btn">Generate MD5 Hash</button>
             </form>
             
             <button type="button" class="btn btn-secondary" onclick="toggleCode()" style="margin-top:15px;">See Code</button>
@@ -211,89 +237,63 @@
             <div class="output">
                 <h3>Results</h3>
                 <div class="result-row">
-                    <strong>Input Message:</strong> {{ message }}
+                    <strong>Message:</strong> {{ message }}
+                </div>
+                <div class="result-row">
+                    <strong>Message Length:</strong> {{ steps.input_length }} bytes ({{ steps.input_length * 8 }} bits)
                 </div>
                 
                 <div class="step">
-                    <h4>Step 1: Message Length</h4>
-                    <p>Original length: {{ input_length }} bits</p>
+                    <h4>Step 1: Initial MD5 State</h4>
+                    <p><strong>A:</strong> {{ steps.initial_state.A }}</p>
+                    <p><strong>B:</strong> {{ steps.initial_state.B }}</p>
+                    <p><strong>C:</strong> {{ steps.initial_state.C }}</p>
+                    <p><strong>D:</strong> {{ steps.initial_state.D }}</p>
                 </div>
                 
                 <div class="step">
-                    <h4>Step 2: Padding Applied</h4>
-                    <p>Message padded from {{ input_length }} to {{ steps.padded_length }} bits</p>
-                </div>
-                
-                <div class="step">
-                    <h4>Step 3: Initial Hash Values (H0-H7)</h4>
-                    {% for h in steps.initial_H %}
-                    <p>H{{ loop.index0 }}: {{ h }}</p>
-                    {% endfor %}
-                </div>
-                
-                <div class="step">
-                    <h4>Step 4: Block Processing</h4>
+                    <h4>Step 2: Message Padding</h4>
+                    <p><strong>Original length:</strong> {{ steps.input_length }} bytes</p>
+                    <p><strong>Padded length:</strong> {{ steps.padded_length }} bytes</p>
+                    <p><strong>Message blocks (512-bit):</strong> {{ steps.blocks|length }}</p>
                     {% for block in steps.blocks %}
-                    <div style="margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
-                        <h5>Block {{ loop.index }}</h5>
-                        
-                        <div style="margin: 10px 0;">
-                            <strong>Message Schedule (W) - First 16 values:</strong>
-                            {% for w in block.W_initial %}
-                            <span style="display: inline-block; margin: 2px; font-family: monospace; font-size: 11px; background: #e0e0e0; padding: 2px 4px;">{{ w }}</span>
-                            {% endfor %}
-                        </div>
-                        
-                        <div style="margin: 10px 0;">
-                            <strong>Message Schedule Expanded (W16-W23):</strong>
-                            {% for w in block.W_expanded %}
-                            <span style="display: inline-block; margin: 2px; font-family: monospace; font-size: 11px; background: #e0f0e0; padding: 2px 4px;">{{ w }}</span>
-                            {% endfor %}
-                        </div>
-                        
-                        <div style="margin: 10px 0;">
-                            <strong>Selected Round Values:</strong>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 5px;">
-                                <tr style="background: #d0d0d0;">
-                                    <th style="border: 1px solid #999; padding: 4px;">Round</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">a</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">b</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">c</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">d</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">e</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">f</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">g</th>
-                                    <th style="border: 1px solid #999; padding: 4px;">h</th>
-                                </tr>
-                                {% for round in block.rounds %}
-                                <tr>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 11px;">{{ round.round }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.a }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.b }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.c }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.d }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.e }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.f }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.g }}</td>
-                                    <td style="border: 1px solid #ccc; padding: 4px; font-family: monospace; font-size: 10px;">{{ round.h }}</td>
-                                </tr>
-                                {% endfor %}
-                            </table>
-                        </div>
-                        
-                        <div style="margin: 10px 0;">
-                            <strong>Hash Values After Block:</strong>
-                            {% for h in block.H_after %}
-                            <span style="display: inline-block; margin: 2px; font-family: monospace; font-size: 11px; background: #e0e0ff; padding: 2px 4px;">H{{ loop.index0 }}: {{ h }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
+                    <p style="font-size: 11px;">Block {{ loop.index }}: {{ block[:32] }}...</p>
                     {% endfor %}
                 </div>
                 
                 <div class="step">
-                    <h4>Step 5: Final SHA-256 Hash</h4>
-                    <p style="word-break: break-all; font-weight: bold;">{{ output }}</p>
+                    <h4>Step 3: Round Processing (Selected Rounds)</h4>
+                    <table>
+                        <tr>
+                            <th>Round</th>
+                            <th>A</th>
+                            <th>B</th>
+                            <th>C</th>
+                            <th>D</th>
+                        </tr>
+                        {% for round in steps.rounds %}
+                        <tr>
+                            <td>{{ round.round }}</td>
+                            <td>{{ round.A }}</td>
+                            <td>{{ round.B }}</td>
+                            <td>{{ round.C }}</td>
+                            <td>{{ round.D }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                
+                <div class="step">
+                    <h4>Step 4: Final MD5 State</h4>
+                    <p><strong>A:</strong> {{ steps.final_state.A }}</p>
+                    <p><strong>B:</strong> {{ steps.final_state.B }}</p>
+                    <p><strong>C:</strong> {{ steps.final_state.C }}</p>
+                    <p><strong>D:</strong> {{ steps.final_state.D }}</p>
+                </div>
+                
+                <div class="result-row" style="margin: 20px 0;">
+                    <strong style="font-size: 14px;">MD5 Hash Result:</strong>
+                    <div class="hash-output">{{ output }}</div>
                 </div>
             </div>
             {% endif %}

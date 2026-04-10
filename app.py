@@ -2,6 +2,8 @@
 import subprocess
 import math
 from sha256 import sha256
+from cmac import cmac_aes
+from md5 import md5
 
 app = Flask(__name__)
 app.secret_key = "crypto_lab_secret_key"
@@ -592,6 +594,104 @@ def sha256_hash():
     steps_data = session.pop("sha256_steps", {})
 
     return render_template("sha256.html", output=output, error=error, code=code, message=message, input_length=input_length, steps=steps_data)
+
+@app.route("/cmac", methods=["GET", "POST"])
+def cmac_hash():
+    output = ""
+    error = ""
+    message = ""
+    key = ""
+    tlen = ""
+    steps_data = {}
+    
+    # Read the code file
+    with open("cmac.py", "r", encoding="utf-8", errors="replace") as f:
+        code = f.read()
+
+    if request.method == "POST":
+        try:
+            message = request.form["message"]
+            key = request.form.get("key", "")
+            tlen = int(request.form.get("tlen", "16"))
+            
+            # Normalize tlen
+            if tlen < 1 or tlen > 16:
+                tlen = 16
+            
+            # Pad key to 16 bytes
+            if not key:
+                key = "\x00" * 16
+            else:
+                key_bytes = key.encode('utf-8')
+                if len(key_bytes) < 16:
+                    key_bytes = key_bytes + b'\x00' * (16 - len(key_bytes))
+                else:
+                    key_bytes = key_bytes[:16]
+                key = key_bytes.decode('utf-8', errors='replace')
+            
+            # Store form values in session to preserve them after redirect
+            session["cmac_message"] = message
+            session["cmac_key"] = key
+            session["cmac_tlen"] = tlen
+            
+            # Generate CMAC tag
+            tag_bytes, steps = cmac_aes(key.encode('utf-8')[:16], message.encode('utf-8'), tlen, debug=False)
+            
+            session["cmac_output"] = tag_bytes.hex() if isinstance(tag_bytes, bytes) else tag_bytes
+            session["cmac_steps"] = steps
+            session["cmac_steps"]["key_hex"] = key.encode('utf-8')[:16].hex()
+            session["cmac_steps"]["is_complete_block"] = (len(message.encode('utf-8')) % 16) == 0
+            session["cmac_steps"]["last_block"] = steps.get("cbc_steps", [{}])[-1].get("output", "")
+        except Exception as e:
+            session["cmac_error"] = f"Error: {str(e)}"
+        
+        return redirect(url_for("cmac_hash"))
+    
+    # Get from session and clear
+    output = session.pop("cmac_output", "")
+    error = session.pop("cmac_error", "")
+    message = session.pop("cmac_message", "")
+    key = session.pop("cmac_key", "")
+    tlen = session.pop("cmac_tlen", "")
+    steps_data = session.pop("cmac_steps", {})
+
+    return render_template("cmac.html", output=output, error=error, code=code, message=message, key=key, tlen=tlen, steps=steps_data)
+
+@app.route("/md5", methods=["GET", "POST"])
+def md5_hash():
+    output = ""
+    error = ""
+    message = ""
+    steps_data = {}
+    
+    # Read the code file
+    with open("md5.py", "r", encoding="utf-8", errors="replace") as f:
+        code = f.read()
+
+    if request.method == "POST":
+        try:
+            message = request.form["message"]
+            
+            # Store form value in session to preserve it after redirect
+            session["md5_message"] = message
+            
+            # Generate MD5 hash
+            hash_output, steps = md5(message)
+            
+            session["md5_output"] = hash_output
+            session["md5_steps"] = steps
+        except Exception as e:
+            session["md5_error"] = f"Error: {str(e)}"
+        
+        return redirect(url_for("md5_hash"))
+    
+    # Get from session and clear
+    output = session.pop("md5_output", "")
+    error = session.pop("md5_error", "")
+    message = session.pop("md5_message", "")
+    steps_data = session.pop("md5_steps", {})
+
+    return render_template("md5.html", output=output, error=error, code=code, message=message, steps=steps_data)
 
 if __name__ == "__main__":
     import os
